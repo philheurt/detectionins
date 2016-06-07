@@ -1,6 +1,8 @@
+# coding: utf8
+
 import numpy as np
-import matplotlib.pyplot as plt
 import utils
+import re
 
 def main():
 	# extraction du train
@@ -9,7 +11,10 @@ def main():
 	# extraction du test
 	X_test = utils.extract_features('test.csv', train=False)
 
-	# nettoyer les données : enlever ponctuation, tokeniser
+	# on retire la ponctuation
+	X = utils.clean(X)
+	X_test = utils.clean(X_test)
+
 
 if __name__ == '__main__':
 	main()
