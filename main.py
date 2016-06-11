@@ -14,7 +14,9 @@ def main():
 	# on retire la ponctuation
 	X = utils.clean(X)
 	X_test = utils.clean(X_test)
+	print X_test
 
 
 if __name__ == '__main__':
 	main()
+
