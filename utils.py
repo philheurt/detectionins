@@ -26,3 +26,6 @@ def clean(stringtab):
 		empt += " "
 	trantab = string.maketrans(string.punctuation, empt)
 	return [s.translate(trantab) for s in stringtab]
+
+def tokenise(stringtab):
+	return [s.split(' ') for s in stringtab]
