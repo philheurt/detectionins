@@ -89,7 +89,7 @@ def clean(stringtab):
 
 	return tab
 
-def count_punctuation(stringtab, ratio=False):
+def count_punctuation(stringtab, ratio=True):
 	"""Retourne des informations sur le nombre de signes de ponctuation dans chaque commentaire.
 	
 	ENTREE
@@ -109,7 +109,7 @@ def count_punctuation(stringtab, ratio=False):
 	
 	cnt_tab = []
 	for comment in stringtab:
-		comment_no_space = [c for c in comment if c not in " _'"] #  on ajoute des espaces et _ dans clean donc on ne les considère pas
+		comment_no_space = [c for c in comment if c not in " _'"] #  on ajoute des espaces et _REP dans clean donc on ne les considère pas
 		cnt = 0
 		for c in comment_no_space:
 			if c in string.punctuation:
@@ -121,7 +121,7 @@ def count_punctuation(stringtab, ratio=False):
 
 	return cnt_tab
 
-def tokenise(stringtab):
+def tokenize(stringtab):
 	"""MIEUX FAIT PAR NLTK
 	Sépare chaque string du tableau en un tableau de ses mots et enlève la ponctuation.
 
@@ -135,7 +135,67 @@ def tokenise(stringtab):
 	tokenized_tab : array d'arrays de strings
 		Le tableau des commentaires tokenizé
 	"""
-	return [re.split('\W+',s.lower()) for s in stringtab]
+
+	tok_tab = []
+	for comment in stringtab:
+
+		if comment[0] in string.punctuation:
+			tok = re.split('\W+',comment)[1:]
+		else:
+			tok = re.split('\W+',comment)
+
+		if len(tok) > 1:
+			tok_tab.append(tok[:-1])
+		else:
+			tok_tab.append(tok)
+
+	return tok_tab
+
+def count_capitals(tokenized_tab, ratio=True):
+	"""Compte le nombre absolu ou relatif de lettres majuscules dans le tableau de commentaires tokenizé.
+	
+	ENTREE
+	------------
+	tokenized_tab : array 2d de strings
+		Le tableau des commentaires tokenisés
+
+	ratio : booléen
+		Si on veut une valeur absolue ou relative à la taille du commentaire
+
+	SORTIE
+	------------
+	tokenized_tab_low : array 2d de strings
+		Copie de tokenized_tab mais avec tous les mots en minuscules
+		
+	cnt_tab : array de ints ou de floats
+		Tableau contenant pour chaque commentaire le nombre de lettres en majuscule, divisé ou non, selon la valeur de ratio,
+		par la longueur du commentaire.
+	"""
+
+	cnt_tab = []
+	tokenized_tab_low = []
+	for i,tokenized_comment in enumerate(tokenized_tab):
+		cnt_cap = 0
+		cnt = 0
+		tab = []
+		for word in tokenized_comment:
+			for c in word:
+				if c == c.upper():
+					cnt_cap += 1
+
+				cnt += 1
+
+			tab.append(word.lower())
+
+		tokenized_tab_low.append(tab)
+
+		if ratio:
+			cnt_tab.append(cnt_cap/cnt)
+		else:
+			cnt_tab.append(cnt_cap)
+
+	return tokenized_tab_low, cnt_tab
+
 
 def load_bad_words():
 	"""Retourne la liste des bad words établie par Google.
