@@ -2,7 +2,7 @@ import numpy as np
 import string
 import re
 
-def extract_features(filename, test=False):
+def extract_features(filename, train=False):
 	"""Récupère les commentaires ainsi que leur label si train=True (défaut).
 
 	ENTREE
@@ -10,8 +10,8 @@ def extract_features(filename, test=False):
 	filename : string
 		Le nom du fichier
 
-	test : booleen
-		Si test vaut True, la fonction renvoit la variable cible. Sinon elle renvoit seulement les commentaires.
+	train : booleen
+		Si train vaut True, la fonction renvoit la variable cible. Sinon elle renvoit seulement les commentaires.
 
 	SORTIE
 	----------
@@ -19,11 +19,11 @@ def extract_features(filename, test=False):
 		Le tableau de commentaire
 
 	y : array de booleens
-		La variable cible renvoyée si test=False.
+		La variable cible renvoyée si train=False.
 	"""
 	X=[]
 	with open(filename, "r") as f:
-		if not test:
+		if not train:
 			y=[]
 			for line in f:
 				y.append(int(line[0]))
