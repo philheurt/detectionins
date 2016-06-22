@@ -5,7 +5,9 @@ import string
 import re
 import nltk
 
-def extract_comments(filename, test=False):
+import nlp
+
+def load_comments(filename, test=False):
 	"""Récupère les commentaires ainsi que leur label si train=True (défaut).
 
 	ENTREE
@@ -18,10 +20,10 @@ def extract_comments(filename, test=False):
 
 	SORTIE
 	----------
-	X : array de strings
+	X : liste de strings
 		Le tableau de commentaire
 
-	y : array de booleens
+	y : liste de booleens
 		La variable cible renvoyée si test=False.
 	"""
 	X=[]
@@ -41,18 +43,64 @@ def extract_comments(filename, test=False):
 			return X
 
 
-def clean(stringtab):
+def load_stop_words():
+	"""Retourne le tableau des stop words en anglais, i.e. les mots très courant sans grande valeur sémantique.
+	"you" a été retiré de la liste des top words car les insultes en anglais l'utilisent souvent."""
+
+	sw = open("stop_words.txt")
+	s = sw.read()
+	stop_words = s.split('\n')
+
+	return stop_words
+
+
+def load_bad_words():
+	"""Retourne la liste des bad words établie par Google.
+
+	SORTIE
+	------------
+	tab : liste de strings
+		La liste des bad words sous la forme d'un tableau.
+	"""
+	bw = open("bad_words.txt", "r")
+	s = bw.read()
+	bad_tab = re.split("\W+", s)
+	# le premier et dernier élément de la liste sont vides (conséquence du split, les premier et dernier caractères du fichier étant des guillemets)
+	return bad_tab[1:-1]
+
+
+def get_vocab(processed_corpus):
+	"""Retourne la liste des mots employés dans tout le corpus.
+	ENTREE
+	---------
+	processed_corpus : liste de strings
+		Tableau de commentaires nettoyé, tokenizé, racinisé
+
+	SORTIE
+	---------
+	vocab : liste de strings
+		Le vocabulaire employé dans le corpus
+	"""
+
+	vocab = set()
+	for comment in processed_corpus:
+		vocab.update(comment)
+
+	return list(vocab)
+
+
+def clean(corpus):
 	"""Nettoie les commentaires et remplace les éléments indésirables par des balises adaptées.
 	Largement inspiré de https://github.com/andreiolariu/kaggle-insults/blob/master/nlp_dict.py
 	
 	ENTREE
 	----------
-	stringtab : array de strings
+	corpus : liste de strings
 		Le tableau de commentaires
 
 	SORTIE
 	----------
-	tab : array de strings
+	tab : liste de strings
 		Tableau de commentaire modifié
 	"""
 
@@ -76,7 +124,7 @@ def clean(stringtab):
 	regex_ang = re.compile(r"-_-|:@|:-?\|")
 
 	tab = []
-	for comment in stringtab:
+	for comment in corpus:
 
 		no_enc_tag = regex_enc_tag.sub(" ", comment)
 		no_url = regex_url.sub(" _url ", no_enc_tag)
@@ -94,13 +142,13 @@ def clean(stringtab):
 	return tab
 
 
-def tokenize(stringtab, auto=True, sentence=False):
+def tokenize(corpus, auto=True, sentence=False):
 	"""Sépare chaque string du tableau en un tableau de ses mots.
 	Problème de NLTK : ne sépare pas les mots séparés uniquement par un slash (au moins ça)
 
 	ENTREE
 	-----------
-	stringtab : array de strings
+	corpus : liste de strings
 		Le tableau de commentaires
 
 	auto : booléen
@@ -113,19 +161,24 @@ def tokenize(stringtab, auto=True, sentence=False):
 
 	SORTIE
 	-----------
-	tokenized_tab : array d'arrays de strings
+	tokenized_corpus : liste d'listes de strings
 		Le tableau des commentaires tokenizé
 	"""
 
 	tok_tab = []
 	if auto:
-		for comment in stringtab:
+		for comment in corpus:
 			if sentence:
 				tok_tab.append(nltk.sent_tokenize(comment))
 			else:
-				tok_tab.append(nltk.word_tokenize(comment))
+				tok = nltk.word_tokenize(comment)
+				for word in tok:
+					if '/' in word: # le tokenizer de nltk ne sépare pas les mots séparé par un slash sans espace
+						tok.extend(word.split('/')) # l'ordre des mots n'a pas d'importance donc on rajoute à la fin
+						tok.remove(word)
+				tok_tab.append(tok)
 	else:
-		for comment in stringtab:
+		for comment in corpus:
 
 			if comment[0] in string.punctuation:
 				tok = re.split('\W+',comment)[1:]
@@ -140,12 +193,35 @@ def tokenize(stringtab, auto=True, sentence=False):
 	return tok_tab
 
 
-def count_punctuation(stringtab, ratio=True, auto=True):
+def remove_stop_words_punctuation(tokenized_corpus):
+	"""Retire les stop words des commentaires.
+
+	ENTREE
+	------------
+	tokenized_corpus : liste 2d de strings
+		Le tableau des commentaires tokenizés.
+
+	SORTIE
+	-----------
+	no_stop : liste 2d de strings
+		Le même tableau sans les stop words.
+	"""
+
+	stopwords = load_stop_words()
+	no_stop_punct = []
+
+	for comment in tokenized_corpus:
+		no_stop_punct.append([w for w in comment if w not in stopwords and w not in string.punctuation and w != ""])
+
+	return no_stop_punct
+
+
+def count_punctuation(corpus, ratio=True, auto=True):
 	"""Retourne des informations sur le nombre de signes de ponctuation dans chaque commentaire.
 	
 	ENTREE
 	------------
-	stringtab : array de strings
+	corpus : liste de strings
 		Le tableau de commentaires (nettoyé normalement), tokenizé ou non selon la valeur de auto.
 
 	ratio : booléen
@@ -156,14 +232,14 @@ def count_punctuation(stringtab, ratio=True, auto=True):
 
 	SORTIE
 	------------
-	cnt_tab : numpy.ndarray
+	cnt_tab : numpy.ndliste
 		Tableau contenant pour chaque commentaire le nombre de signe de ponctuation, divisé ou non, selon la valeur de ratio,
 		par la longueur du commentaire (en nombre de mots si auto=True, en nombre de caractères sinon).
 	"""
 	
 	cnt_tab = []
 	if auto:
-		for comment in stringtab:
+		for comment in corpus:
 			cnt = 0
 			for word in comment:
 				if word in string.punctuation:
@@ -174,8 +250,8 @@ def count_punctuation(stringtab, ratio=True, auto=True):
 				cnt_tab.append(cnt)
 
 	else:
-		for comment in stringtab:
-			comment_no_space = [c for c in comment if c not in " _'"] #  on ajoute des espaces et _REP dans clean donc on ne les considère pas
+		for comment in corpus:
+			comment_no_space = (c for c in comment if c not in " _'") #  on ajoute des espaces et _REP dans clean donc on ne les considère pas
 			cnt = 0
 			for c in comment_no_space:
 				if c in string.punctuation:
@@ -190,30 +266,30 @@ def count_punctuation(stringtab, ratio=True, auto=True):
 	return cnt_tab
 
 
-def count_capitals(tokenized_tab, ratio=True):
+def count_capitals(tokenized_corpus, ratio=True):
 	"""Compte le nombre absolu ou relatif de lettres majuscules dans le tableau de commentaires tokenizé.
 	
 	ENTREE
 	------------
-	tokenized_tab : array 2d de strings
-		Le tableau des commentaires tokenisés
+	tokenized_corpus : liste 2d de strings
+		Le tableau des commentaires tokenizés
 
 	ratio : booléen
 		Si on veut une valeur absolue ou relative à la taille du commentaire
 
 	SORTIE
 	------------
-	tokenized_tab_low : array 2d de strings
-		Copie de tokenized_tab mais avec tous les mots en minuscules
+	tokenized_corpus_low : liste 2d de strings
+		Copie de tokenized_corpus mais avec tous les mots en minuscules
 
-	cnt_tab : numpy.ndarray
+	cnt_tab : numpy.ndliste
 		Tableau contenant pour chaque commentaire le nombre de lettres en majuscule, divisé ou non, selon la valeur de ratio,
 		par la longueur du commentaire.
 	"""
 
 	cnt_tab = []
-	tokenized_tab_low = []
-	for tokenized_comment in tokenized_tab:
+	tokenized_corpus_low = []
+	for tokenized_comment in tokenized_corpus:
 		cnt_cap = 0
 		cnt = 0
 		tab = []
@@ -224,7 +300,7 @@ def count_capitals(tokenized_tab, ratio=True):
 				cnt += 1
 			tab.append(word.lower())
 
-		tokenized_tab_low.append(tab)
+		tokenized_corpus_low.append(tab)
 
 		if ratio:
 			cnt_tab.append(cnt_cap/cnt)
@@ -233,30 +309,15 @@ def count_capitals(tokenized_tab, ratio=True):
 
 	cnt_tab = np.array(cnt_tab)
 
-	return tokenized_tab_low, cnt_tab
+	return tokenized_corpus_low, cnt_tab
 
 
-def load_bad_words():
-	"""Retourne la liste des bad words établie par Google.
-
-	SORTIE
-	------------
-	tab : array de strings
-		La liste des bad words sous la forme d'un tableau.
-	"""
-	bw = open("bad_words.txt", "r")
-	s = bw.read()
-	bad_tab = re.split("\W+", s)
-	# le premier et dernier élément de la liste sont vides (conséquence du split, les premier et dernier caractères du fichier étant des guillemets)
-	return bad_tab[1:-1]
-
-
-def get_bw_stats(tokenized_tab, ratio=True):
+def get_bw_stats(tokenized_corpus, ratio=True):
 	"""Retourne le ratio de bad_words contenus dans les commentaires
 
 	ENTREE
 	-------------
-	tokenized_tab : array de strings
+	tokenized_corpus : liste de strings
 		Le tableau de commentaires tokenizé.
 
 	ratio : booléen
@@ -264,15 +325,15 @@ def get_bw_stats(tokenized_tab, ratio=True):
 
 	SORTIE
 	-------------
-	bw_cnt : numpy.ndarray
+	bw_cnt : numpy.ndliste
 		Le tableau contenant le ratio de chaque commentaire.
 	"""
 
 	bad_words = load_bad_words()
 
 	bw_cnt = []
-	for comment in tokenized_tab:
-		comment_no_punct = [word for word in comment if word not in string.punctuation]
+	for comment in tokenized_corpus:
+		comment_no_punct = (word for word in comment if word not in string.punctuation)
 		cnt = 0
 		for word in comment_no_punct:
 			if word in bad_words:
@@ -287,7 +348,8 @@ def get_bw_stats(tokenized_tab, ratio=True):
 
 	return bw_cnt
 
-def get_statistics(tokenized_tab, ratio=True):
+
+def get_statistics(tokenized_corpus, ratio=True):
 	"""Retourne les nombres ou ratio de :
 	- signes de ponctuation ;
 	- majuscules ;
@@ -296,7 +358,7 @@ def get_statistics(tokenized_tab, ratio=True):
 	
 	ENTREE
 	------------
-	tokenized_tab : array 2d de strings
+	tokenized_corpus : liste 2d de strings
 		Le tableau des commentaires tokenisés
 
 	ratio : booléen
@@ -304,40 +366,41 @@ def get_statistics(tokenized_tab, ratio=True):
 
 	SORTIE
 	------------
-	tokenized_tab_low = array de strings
+	tokenized_corpus_low = liste de strings
 		Le tableau de commentaires tokenizé et tout en minuscules.
 
-	maj_stats : numpy.ndarray
+	maj_stats : numpy.ndliste
 		Le tableau de statistiques sur les majuscules.
 
-	punct_stats : numpy.ndarray
+	punct_stats : numpy.ndliste
 		Le tableau de statistiques sur la ponctuation.
 
-	bw_stats : numpy.ndarray
+	bw_stats : numpy.ndliste
 		Le tableau de statistiques sur les bad words.
 	"""
 
-	tokenized_tab_low, maj_stats = count_capitals(tokenized_tab, ratio)
-	punct_stats = count_punctuation(tokenized_tab, ratio)
-	bw_stats = get_bw_stats(tokenized_tab, ratio)
+	tokenized_corpus_low, maj_stats = count_capitals(tokenized_corpus, ratio)
+	punct_stats = count_punctuation(tokenized_corpus, ratio)
+	bw_stats = get_bw_stats(tokenized_corpus, ratio)
 
-	return tokenized_tab_low, maj_stats, punct_stats, bw_stats
+	return tokenized_corpus_low, maj_stats, punct_stats, bw_stats
 
 
-def get_features(tokenized_tab):
-	"""Retourne différentes données sur le contenu des commentaires.
+def get_features(corpus):
+	"""Retourne un dataframe des features.
 
 	ENTREE
 	----------
-	tokenized_tab : array de strings
-		Le tableau des commentaires tokenizé
+	corpus : liste de strings
+		Le tableau des commentaires
 
 	SORTIE
 	----------
 	df : pandas DataFrame
-		DataFrame contenant des infos numériques sur les commentaires
+		DataFrame contenant les mots du vocabulaire en colonne et les commentaires en ligne.
 	"""
-	n = len(tokenized_tab)
+	"""
+	n = len(tokenized_corpus)
 	lengths = []
 
 	keys = ['_url', '_nb', '_date', '_rep', '_happysmiley', '_sadsmiley', '_angrysmiley']
@@ -346,7 +409,7 @@ def get_features(tokenized_tab):
 	for key in keys:
 		features[key] = np.zeros(n)
 
-	for i,com in enumerate(tokenized_tab):
+	for i,com in enumerate(tokenized_corpus):
 		length = 0
 		for word in com:
 			length += len(word) # ne marche que si l'on a pas tokenizé par phrase
@@ -362,11 +425,45 @@ def get_features(tokenized_tab):
 	new_keys = ['nb_url', 'nb_nb', 'nb_date', 'nb_rep', 'nb_hsm', 'nb_ssm', 'nb_asm']
 	df.columns = new_keys
 
-	_, maj_stats, pun_stats, bw_stats = get_statistics(tokenized_tab)
+	_, maj_stats, pun_stats, bw_stats = get_statistics(tokenized_corpus)
 
 	df['length'] = lengths
 	df['maj_ratio'] = maj_stats
 	df['punct_ratio'] = pun_stats
 	df['bw_ratio'] = bw_stats
+	"""
+
+	corp = clean(corpus)
+	print("Cleaning done")
+	corp = tokenize(corp)
+	print("Tokenizing done")
+	corp = remove_stop_words_punctuation(corp)
+	print("Removing done")
+	corp = nlp.stem(corp)
+	print("Stemming done")
+
+	n = len(corp)
+
+	vocab = get_vocab(corp)
+
+	df_dict = {}
+	print("Computing dictionnary...")
+	for word in vocab:
+		df_dict[word] = len([com for com in corp if word in com])
+
+	print("Dictionnary computed !")
+
+	features = {}
+	print("Processing...")
+	for index,com in enumerate(corp):
+		for word in com:
+			features[word] = np.zeros(n)
+			val = nlp.tfidf(corp, word, com, df_dict)
+			print(word, index, "done")
+			features[word][index] = val
+
+	print("Processing completed !")
+
+	df = pd.DataFrame(features)
 
 	return df

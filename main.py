@@ -1,22 +1,29 @@
 # coding: utf8
 
 import numpy as np
+import pandas as pd
+
 import utils
-import re
+import nlp
 
 def main():
-	# extraction du train
-	X, y = utils.extract_features('train.csv')
+	# extraction des données
+	X, y = utils.load_comments('train.csv')
+	X_test = utils.load_comments('test.csv', test=True)
 
-	# extraction du test
-	X_test = utils.extract_features('test.csv', train=False)
+	#corp = utils.clean(X)
+	#corp = utils.tokenize(corp)
+	#corp = utils.remove_stop_words_punctuation(corp)
+	#corp = nlp.stem(corp)
 
-	# on retire la ponctuation
-	X = utils.clean(X)
-	X_test = utils.clean(X_test)
-	print X_test
+	#n = len(corp)
 
+	#vocab = utils.get_vocab(corp)
+	#print(len(vocab))
+	df = utils.get_features(X)
+	data = df.as_matrix()
+	print(data[2764,:].max())
+	print(data.shape)
 
 if __name__ == '__main__':
 	main()
-
