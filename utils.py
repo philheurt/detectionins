@@ -5,7 +5,7 @@ import string
 import re
 import nltk
 
-import nlp
+from nlp import *
 
 def load_comments(filename, test=False):
 	"""Récupère les commentaires ainsi que leur label si train=True (défaut).
@@ -41,6 +41,89 @@ def load_comments(filename, test=False):
 				X.append(line[1:-1])
 				
 			return X
+
+
+def get_features(corpus):
+	"""Retourne un dataframe des features.
+
+	ENTREE
+	----------
+	corpus : liste de strings
+		Le tableau des commentaires
+
+	SORTIE
+	----------
+	df : pandas DataFrame
+		DataFrame contenant les mots du vocabulaire en colonne et les commentaires en ligne.
+	"""
+	"""
+	n = len(tokenized_corpus)
+	lengths = []
+
+	keys = ['_url', '_nb', '_date', '_rep', '_happysmiley', '_sadsmiley', '_angrysmiley']
+
+	features = {}
+	for key in keys:
+		features[key] = np.zeros(n)
+
+	for i,com in enumerate(tokenized_corpus):
+		length = 0
+		for word in com:
+			length += len(word) # ne marche que si l'on a pas tokenizé par phrase
+			if word in keys:
+				features[word][i] += 1
+
+		lengths.append(length)
+
+	lengths = np.array(lengths)
+
+	df = pd.DataFrame(features)
+
+	new_keys = ['nb_url', 'nb_nb', 'nb_date', 'nb_rep', 'nb_hsm', 'nb_ssm', 'nb_asm']
+	df.columns = new_keys
+
+	_, maj_stats, pun_stats, bw_stats = get_statistics(tokenized_corpus)
+
+	df['length'] = lengths
+	df['maj_ratio'] = maj_stats
+	df['punct_ratio'] = pun_stats
+	df['bw_ratio'] = bw_stats
+	"""
+
+	corp = clean(corpus)
+	print("Cleaning done")
+	corp = tokenize(corp)
+	print("Tokenizing done")
+	corp = remove_stop_words_punctuation(corp)
+	print("Removing done")
+	corp = stem(corp)
+	print("Stemming done")
+
+	n = len(corp)
+
+	vocab = get_vocab(corp)
+
+	df_dict = {}
+	print("Computing dictionnary...")
+	for word in vocab:
+		df_dict[word] = len([com for com in corp if word in com])
+
+	print("Dictionnary computed !")
+
+	features = {}
+	print("Processing...")
+	for index,com in enumerate(corp):
+		for word in com:
+			features[word] = np.zeros(n)
+			val = tfidf(corp, word, com, df_dict)
+			print(word, index, "done")
+			features[word][index] = val
+
+	print("Processing completed !")
+
+	df = pd.DataFrame(features)
+
+	return df
 
 
 def load_stop_words():
@@ -140,57 +223,6 @@ def clean(corpus):
 		tab.append(no_ang)
 
 	return tab
-
-
-def tokenize(corpus, auto=True, sentence=False):
-	"""Sépare chaque string du tableau en un tableau de ses mots.
-	Problème de NLTK : ne sépare pas les mots séparés uniquement par un slash (au moins ça)
-
-	ENTREE
-	-----------
-	corpus : liste de strings
-		Le tableau de commentaires
-
-	auto : booléen
-		Si True, le module nltk sera utilisé au lieu de mon implémentation (pourtant admirable).
-		La ponctuation apparaîtra alors dans le tableau de commentaires tokenizé.
-
-	sentence : booléen
-		Si True, utilse la fonction sent_tokenise de nltk qui sépare en plus les commentaires en phrases.
-		2 phrases -> 2 tableaux des phrases tokenizées.
-
-	SORTIE
-	-----------
-	tokenized_corpus : liste d'listes de strings
-		Le tableau des commentaires tokenizé
-	"""
-
-	tok_tab = []
-	if auto:
-		for comment in corpus:
-			if sentence:
-				tok_tab.append(nltk.sent_tokenize(comment))
-			else:
-				tok = nltk.word_tokenize(comment)
-				for word in tok:
-					if '/' in word: # le tokenizer de nltk ne sépare pas les mots séparé par un slash sans espace
-						tok.extend(word.split('/')) # l'ordre des mots n'a pas d'importance donc on rajoute à la fin
-						tok.remove(word)
-				tok_tab.append(tok)
-	else:
-		for comment in corpus:
-
-			if comment[0] in string.punctuation:
-				tok = re.split('\W+',comment)[1:]
-			else:
-				tok = re.split('\W+',comment)
-
-			if len(tok) > 1:
-				tok_tab.append(tok[:-1])
-			else:
-				tok_tab.append(tok)
-
-	return tok_tab
 
 
 def remove_stop_words_punctuation(tokenized_corpus):
@@ -384,86 +416,3 @@ def get_statistics(tokenized_corpus, ratio=True):
 	bw_stats = get_bw_stats(tokenized_corpus, ratio)
 
 	return tokenized_corpus_low, maj_stats, punct_stats, bw_stats
-
-
-def get_features(corpus):
-	"""Retourne un dataframe des features.
-
-	ENTREE
-	----------
-	corpus : liste de strings
-		Le tableau des commentaires
-
-	SORTIE
-	----------
-	df : pandas DataFrame
-		DataFrame contenant les mots du vocabulaire en colonne et les commentaires en ligne.
-	"""
-	"""
-	n = len(tokenized_corpus)
-	lengths = []
-
-	keys = ['_url', '_nb', '_date', '_rep', '_happysmiley', '_sadsmiley', '_angrysmiley']
-
-	features = {}
-	for key in keys:
-		features[key] = np.zeros(n)
-
-	for i,com in enumerate(tokenized_corpus):
-		length = 0
-		for word in com:
-			length += len(word) # ne marche que si l'on a pas tokenizé par phrase
-			if word in keys:
-				features[word][i] += 1
-
-		lengths.append(length)
-
-	lengths = np.array(lengths)
-
-	df = pd.DataFrame(features)
-
-	new_keys = ['nb_url', 'nb_nb', 'nb_date', 'nb_rep', 'nb_hsm', 'nb_ssm', 'nb_asm']
-	df.columns = new_keys
-
-	_, maj_stats, pun_stats, bw_stats = get_statistics(tokenized_corpus)
-
-	df['length'] = lengths
-	df['maj_ratio'] = maj_stats
-	df['punct_ratio'] = pun_stats
-	df['bw_ratio'] = bw_stats
-	"""
-
-	corp = clean(corpus)
-	print("Cleaning done")
-	corp = tokenize(corp)
-	print("Tokenizing done")
-	corp = remove_stop_words_punctuation(corp)
-	print("Removing done")
-	corp = nlp.stem(corp)
-	print("Stemming done")
-
-	n = len(corp)
-
-	vocab = get_vocab(corp)
-
-	df_dict = {}
-	print("Computing dictionnary...")
-	for word in vocab:
-		df_dict[word] = len([com for com in corp if word in com])
-
-	print("Dictionnary computed !")
-
-	features = {}
-	print("Processing...")
-	for index,com in enumerate(corp):
-		for word in com:
-			features[word] = np.zeros(n)
-			val = nlp.tfidf(corp, word, com, df_dict)
-			print(word, index, "done")
-			features[word][index] = val
-
-	print("Processing completed !")
-
-	df = pd.DataFrame(features)
-
-	return df
