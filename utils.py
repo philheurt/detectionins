@@ -5,7 +5,7 @@ import string
 import re
 import nltk
 
-from nlp import *
+from nlp import tokenize, tfidf, stem
 
 def load_comments(filename, test=False):
 	"""Récupère les commentaires ainsi que leur label si train=True (défaut).
@@ -70,7 +70,7 @@ def get_features(corpus):
 	ENTREE
 	----------
 	corpus : liste de strings
-		Le tableau des commentaires
+		Le tableau des commentaires passé par la case process
 
 	SORTIE
 	----------
@@ -111,23 +111,21 @@ def get_features(corpus):
 	df['bw_ratio'] = bw_stats
 	"""
 
-	n = len(corp)
+	n = len(corpus)
 
-	vocab = get_vocab(corp)
+	vocab = get_vocab(corpus)
 
 	df_dict = {}
+	features = {}
 	print("Computing dictionnary...")
 	for word in vocab:
-		df_dict[word] = len([com for com in corp if word in com])
+		df_dict[word] = len([com for com in corpus if word in com])
+		features[word] = np.zeros(n)
 
-	features = {}
 	print("Computing TF-IDF")
-	for index,com in enumerate(corp):
+	for index,com in enumerate(corpus):
 		for word in com:
-			features[word] = np.zeros(n)
-			val = tfidf(corp, word, com, df_dict)
-			print(word, index, "done")
-			features[word][index] = val
+			features[word][index] = tfidf(corpus, word, com, df_dict)
 
 	df = pd.DataFrame(features)
 
