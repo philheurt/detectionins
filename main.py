@@ -6,24 +6,21 @@ import pandas as pd
 import utils
 import nlp
 
+from NaiveBayesClassifier import NBC
+from cross_val import cv_score
+
 def main():
-	# extraction des données
+
 	X, y = utils.load_comments('train.csv')
 	X_test = utils.load_comments('test.csv', test=True)
 
-	#corp = utils.clean(X)
-	#corp = utils.tokenize(corp)
-	#corp = utils.remove_stop_words_punctuation(corp)
-	#corp = nlp.stem(corp)
+	X, X_test = utils.process(X, False), utils.process(X_test, False)
 
-	#n = len(corp)
+	clf = NBC()
+	clf.fit(X,y)
+	pred = clf.predict(X_test)
 
-	#vocab = utils.get_vocab(corp)
-	#print(len(vocab))
-	df = utils.get_features(X)
-	data = df.as_matrix()
-	print(data[2764,:].max())
-	print(data.shape)
+	np.savetxt('pred.txt', pred, fmt='%s')
 
 if __name__ == '__main__':
 	main()

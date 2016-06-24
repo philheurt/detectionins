@@ -26,6 +26,9 @@ def load_comments(filename, test=False):
 	y : liste de booleens
 		La variable cible renvoyée si test=False.
 	"""
+
+	print("Loading comments")
+
 	X=[]
 	with open(filename, "r") as f:
 		if not test:
@@ -41,6 +44,24 @@ def load_comments(filename, test=False):
 				X.append(line[1:-1])
 				
 			return X
+
+
+def process(corpus, auto=True):
+	"""Applique clean, tokenize, remove_stop_words_punctuation et stem au corpus"""
+
+	corp = clean(corpus)
+	print("Cleaning done")
+
+	corp = tokenize(corp, auto)
+	print("Tokenizing done")
+
+	corp = remove_stop_words_punctuation(corp)
+	print("Removing done")
+
+	corp = stem(corp)
+	print("Stemming done")
+
+	return corp
 
 
 def get_features(corpus):
@@ -90,15 +111,6 @@ def get_features(corpus):
 	df['bw_ratio'] = bw_stats
 	"""
 
-	corp = clean(corpus)
-	print("Cleaning done")
-	corp = tokenize(corp)
-	print("Tokenizing done")
-	corp = remove_stop_words_punctuation(corp)
-	print("Removing done")
-	corp = stem(corp)
-	print("Stemming done")
-
 	n = len(corp)
 
 	vocab = get_vocab(corp)
@@ -108,18 +120,14 @@ def get_features(corpus):
 	for word in vocab:
 		df_dict[word] = len([com for com in corp if word in com])
 
-	print("Dictionnary computed !")
-
 	features = {}
-	print("Processing...")
+	print("Computing TF-IDF")
 	for index,com in enumerate(corp):
 		for word in com:
 			features[word] = np.zeros(n)
 			val = tfidf(corp, word, com, df_dict)
 			print(word, index, "done")
 			features[word][index] = val
-
-	print("Processing completed !")
 
 	df = pd.DataFrame(features)
 
@@ -226,7 +234,7 @@ def clean(corpus):
 
 
 def remove_stop_words_punctuation(tokenized_corpus):
-	"""Retire les stop words des commentaires.
+	"""Retire les stop words et la ponctuation des commentaires.
 
 	ENTREE
 	------------

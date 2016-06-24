@@ -2,10 +2,13 @@ from nltk.stem import SnowballStemmer
 from nltk import word_tokenize, sent_tokenize
 from math import log
 
+import string
+import re
+
 
 def tokenize(corpus, auto=True, sentence=False):
 	"""Sépare chaque string du tableau en un tableau de ses mots.
-	Problème de NLTK : ne sépare pas les mots séparés uniquement par un slash (au moins ça)
+	Problème de NLTK : ne sépare pas les mots séparés uniquement par un slash (au moins ça).
 
 	ENTREE
 	-----------
