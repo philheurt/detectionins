@@ -122,7 +122,7 @@ def get_features(corpus):
 		df_dict[word] = len([com for com in corpus if word in com])
 		features[word] = np.zeros(n)
 
-	print("Computing TF-IDF")
+	print("Computing TF-IDF...")
 	for index,com in enumerate(corpus):
 		for word in com:
 			features[word][index] = tfidf(corpus, word, com, df_dict)

@@ -7,7 +7,7 @@ def cv_score(clf,X,y,cv=3):
 
 	scores = []
 	for i in range(cv):
-		X_train = np.hstack(np.delete(X_splits,i,0))
+		X_train = np.vstack(np.delete(X_splits,i,0))
 		y_train = np.hstack(np.delete(y_splits,i,0))
 		
 		X_test, y_test = X_splits[i], y_splits[i]
