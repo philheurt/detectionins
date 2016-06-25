@@ -119,13 +119,16 @@ def get_features(corpus):
 	features = {}
 	print("Computing dictionnary...")
 	for word in vocab:
-		df_dict[word] = len([com for com in corpus if word in com])
-		features[word] = np.zeros(n)
+		tmp = len([com for com in corpus if word in com])
+		if tmp > 2:
+			df_dict[word] = tmp
+			features[word] = np.zeros(n)
 
 	print("Computing TF-IDF...")
 	for index,com in enumerate(corpus):
 		for word in com:
-			features[word][index] = tfidf(corpus, word, com, df_dict)
+			if word in features.keys():
+				features[word][index] = tfidf(corpus, word, com, df_dict)
 
 	df = pd.DataFrame(features)
 
