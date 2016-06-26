@@ -25,6 +25,8 @@ def gradient_descent(X, y, gradient, w0_init, w_init, gamma, epsilon):
 
 	return vec[0], vec[1:]
 
+	
+
 
 def armijos_descent(X, y, func, gradient, w0_init, w_init, a, b, beta, epsilon):
 

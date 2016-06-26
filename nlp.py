@@ -1,9 +1,10 @@
 from nltk.stem import SnowballStemmer
 from nltk import word_tokenize, sent_tokenize
-from math import log
 
 import string
 import re
+
+import numpy as np
 
 
 def tokenize(corpus, auto=True, sentence=False):
@@ -92,6 +93,6 @@ def tfidf(tokenized_corpus, word, comment, df_dict):
 	tf = comment.count(word)
 	df = df_dict[word]
 
-	tfidf = tf*log(n/df,2)
+	tfidf = tf*np.log2(n/df)
 
 	return tfidf

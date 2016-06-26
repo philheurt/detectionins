@@ -3,7 +3,6 @@ import pandas as pd
 
 import string
 import re
-import nltk
 
 from nlp import tokenize, tfidf, stem
 
@@ -55,22 +54,27 @@ def process(corpus, auto=True):
 	corp = tokenize(corp, auto)
 	print("Tokenizing done")
 
+	#punct_stats = count_punctuation(corp, ratio=True, auto=auto)
+	#maj_stats = count_capitals(corp, auto)
+	#bw_stats = get_bw_stats(corp, ratio=True)
+
 	corp = remove_stop_words_punctuation(corp)
 	print("Removing done")
 
 	corp = stem(corp)
 	print("Stemming done")
 
+	#return corp, punct_stats, maj_stats, bw_stats
 	return corp
 
 
-def get_features(corpus):
+def get_features(corpus, auto=True):
 	"""Retourne un dataframe des features.
 
 	ENTREE
 	----------
 	corpus : liste de strings
-		Le tableau des commentaires passé par la case process
+		Le tableau des commentaires passé par la fonction process
 
 	SORTIE
 	----------
@@ -110,6 +114,9 @@ def get_features(corpus):
 	df['punct_ratio'] = pun_stats
 	df['bw_ratio'] = bw_stats
 	"""
+
+	#corp, punct_stats, maj_stats, bw_stats = process(corpus, auto)
+	#corp = process(corpus, auto)
 
 	n = len(corpus)
 
@@ -292,7 +299,7 @@ def count_punctuation(corpus, ratio=True, auto=True):
 
 	else:
 		for comment in corpus:
-			comment_no_space = (c for c in comment if c not in " _'") #  on ajoute des espaces et _REP dans clean donc on ne les considère pas
+			comment_no_space = [c for c in comment if c not in " _'"] #  on ajoute des espaces et _REP dans clean donc on ne les considère pas
 			cnt = 0
 			for c in comment_no_space:
 				if c in string.punctuation:
@@ -329,19 +336,15 @@ def count_capitals(tokenized_corpus, ratio=True):
 	"""
 
 	cnt_tab = []
-	tokenized_corpus_low = []
+
 	for tokenized_comment in tokenized_corpus:
 		cnt_cap = 0
 		cnt = 0
-		tab = []
 		for word in tokenized_comment:
 			for c in word:
 				if c == c.upper() and c not in string.punctuation:
 					cnt_cap += 1
 				cnt += 1
-			tab.append(word.lower())
-
-		tokenized_corpus_low.append(tab)
 
 		if ratio:
 			cnt_tab.append(cnt_cap/cnt)
@@ -350,7 +353,7 @@ def count_capitals(tokenized_corpus, ratio=True):
 
 	cnt_tab = np.array(cnt_tab)
 
-	return tokenized_corpus_low, cnt_tab
+	return cnt_tab
 
 
 def get_bw_stats(tokenized_corpus, ratio=True):
@@ -374,7 +377,7 @@ def get_bw_stats(tokenized_corpus, ratio=True):
 
 	bw_cnt = []
 	for comment in tokenized_corpus:
-		comment_no_punct = (word for word in comment if word not in string.punctuation)
+		comment_no_punct = [word for word in comment if word not in string.punctuation]
 		cnt = 0
 		for word in comment_no_punct:
 			if word in bad_words:
