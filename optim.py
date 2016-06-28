@@ -19,10 +19,10 @@ def gradient_descent(X, y, gradient, w0_init, w_init, gamma, epsilon):
 	vec = np.hstack([w0_init, w_init])
 
 	while err > epsilon:
-		vec = vec - gamma*grad
 		grad = gradient(X, y, vec[0], vec[1:])
+		vec = vec - gamma*grad
 		err = np.sum(grad**2)
-
+		#print (err,vec,grad)
 	return vec[0], vec[1:]
 
 	
@@ -47,6 +47,7 @@ def armijos_descent(X, y, func, gradient, w0_init, w_init, a, b, beta, epsilon):
 		val = func(X, y, w0, w)
 		grad = gradient(X, y, w0, w)
 		err = np.sum(grad**2)
+		#print (err,vec)
 
 	return vec[0], vec[1:]
 
